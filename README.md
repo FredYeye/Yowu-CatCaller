@@ -16,4 +16,8 @@ The second reason is that the Yowu app is frustrating to use (can only listen or
 * Save color / mode presets
 * Detect other Yowu models
 * Optimize / clean up code (only redraw GUI when needed etc)
-* Ability to receive commands from The Internet (twitch bits?)
+* Ability to receive commands from *The Internet* (twitch bits?)
+* Gice the GUI a hip look instead of programmer gray
+
+## Demo video
+[demo.webm](https://user-images.githubusercontent.com/7881804/220471278-21513494-fc30-435f-8f33-94947d31bbd6.webm)
