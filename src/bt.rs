@@ -8,8 +8,15 @@ use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
 
 pub enum BtCommands {
-    SetColor([u8; 3]),
-    SetMode(usize),
+    SetMode(CmdData),
+}
+
+#[derive(Default)]
+pub struct CmdData {
+    pub mode: u8,
+    pub rgb: [u8; 3],
+    pub bpm: u8,
+    pub duration: u8,
 }
 
 #[derive(Debug, Default)]
@@ -98,15 +105,9 @@ pub async fn bt_stuff(rx: &mut mpsc::Receiver<BtCommands>, tx: &mpsc::Sender<BtT
 
     while let Some(commands) = rx.recv().await {
         match commands {
-            BtCommands::SetColor(rgb) => {
+            BtCommands::SetMode(data) => {
                 if headset.is_connected().await? {
-                    headset.write(cmd_char, &color_command(rgb), WriteType::WithoutResponse).await?;
-                }
-            }
-
-            BtCommands::SetMode(mode) => {
-                if headset.is_connected().await? {
-                    headset.write(cmd_char, &mode_command(mode), WriteType::WithoutResponse).await?;
+                    headset.write(cmd_char, &command(data), WriteType::WithoutResponse).await?;
                 }
             }
         }
@@ -115,36 +116,15 @@ pub async fn bt_stuff(rx: &mut mpsc::Receiver<BtCommands>, tx: &mpsc::Sender<BtT
     Ok(())
 }
 
-fn color_command(rgb: [u8; 3]) -> [u8; 11] {
-    let mut cmd = [0xFC, 0x04, 0x01, 0x06, 0x00, rgb[0], rgb[1], rgb[2], 0x00, 0x00, 0x00];
-    cmd[10] = -(cmd.iter().map(|&x| x as i16).sum::<i16>()) as u8;
+fn command(d: CmdData) -> [u8; 11] {
+    // 0xFC, 0x04, 0x01, 0x06 = header / command
+    let mut cmd = [0xFC, 0x04, 0x01, 0x06, d.mode, d.rgb[0], d.rgb[1], d.rgb[2], d.bpm, d.duration, 0x00];
+    cmd[10] = cmd.iter().fold(0, |a, x| a.wrapping_sub(*x));
 
     cmd
 }
 
-fn mode_command(mode: usize) -> [u8; 11] {
-    let modes = vec![
-        [0xFC, 0x04, 0x01, 0x06, 0x01, 0x00, 0x00, 0x00, 0x08, 0x0D, 0x00], //default
-        [0xFC, 0x04, 0x01, 0x06, 0x02, 0x00, 0x00, 0x00, 0x08, 0x03, 0x00], //flash
-        [0xFC, 0x04, 0x01, 0x06, 0x03, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00], //breathe
-        [0xFC, 0x04, 0x01, 0x06, 0x04, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00], //pulse (react to sound)
-        [0xFC, 0x04, 0x01, 0x06, 0x05, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00], //yowu
-        [0xFC, 0x04, 0x01, 0x06, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], //lights off
-        [0xFC, 0x04, 0x01, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], //lights on
-        [0xFC, 0x04, 0x01, 0x06, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], //?
-    ];
-
-    let mut cmd = modes[mode];
-    cmd[10] = -(cmd.iter().map(|&x| x as i16).sum::<i16>()) as u8;
-
-    cmd
-}
-
-// [0xFC, 0x04, 0x01, 0x06, 0x04, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00]
-//  header?--------------|  mode  r     g     b     ?     ?     checksum
-// sending 0 = no change?
-
-
-// fn new_mode(rgb: [u8; 3], mode: u8) -> [u8; 11] {
-//     let base_cmd = [0xFC, 0x04, 0x01, 0x06, mode, rgb[0], rgb[1], rgb[2], 0x00, 0x00, 0x00];
-// }
+//audio profile
+// FC 05 02 02 92 xx cc
+// xx = audio profile 0-3
+// cc = checksum
