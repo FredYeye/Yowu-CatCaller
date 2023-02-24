@@ -7,8 +7,7 @@ pub struct UiState {
     pub bt_state: BtToGui,
     pub headset_type: String,
     pub headset_color: [u8; 3],
-    pub headset_bpm: u8,
-    pub headset_duration: u8,
+    pub headset_settings: [u8; 2],
 }
 
 pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mut UiState) {
@@ -21,11 +20,11 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
     .show(ctx, |ui| {
         match ui_state.bt_state {
             BtToGui::Ready => {
-                ui.colored_label(Color32::from_rgb(31, 60, 76), &ui_state.headset_type);
+                ui.colored_label(Color32::from_rgb(21, 40, 51), &ui_state.headset_type);
 
                 ui.add_space(18.0);
 
-                ui.colored_label(Color32::from_rgb(31, 60, 76), "Color:");
+                ui.colored_label(Color32::from_rgb(21, 40, 51), "Color:");
                 ui.horizontal(|ui| {
                     ui.color_edit_button_srgb(&mut ui_state.headset_color);
 
@@ -51,7 +50,7 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
 
                 let chunk_size = 2;
 
-                ui.colored_label(Color32::from_rgb(31, 60, 76), "Mode:");
+                ui.colored_label(Color32::from_rgb(21, 40, 51), "Mode:");
 
                 for (idx, mode_chunk) in modes.chunks(chunk_size).enumerate() {
                     ui.horizontal(|ui| {
@@ -72,39 +71,30 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
 
                 ui.add_space(18.0);
 
-                ui.colored_label(Color32::from_rgb(31, 60, 76), "Settings:");
+                ui.colored_label(Color32::from_rgb(21, 40, 51), "Settings:");
 
-                ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_state.headset_bpm, 0..=255)
-                        .text("bpm")
-                        .text_color(Color32::from_rgb(31, 60, 76)));
+                let settings = [
+                    "Brightness", "Speed", //todo: figure out ranges
+                    "BPM", "Duration", //if miku is detected. need to change ranges as well?
+                ];
 
-                    if ui.button("apply").clicked() {
-                        let mut data = CmdData::default();
-                        data.bpm = ui_state.headset_bpm;
-
-                        match tx.try_send(BtCommands::SetMode(data)) {
-                            Ok(_) => (),
-                            Err(_) => println!("queue full!"),
-                        };
-                    }
-                });
-
-                ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_state.headset_duration, 0..=255)
-                        .text("duration")
-                        .text_color(Color32::from_rgb(31, 60, 76)));
-
-                    if ui.button("apply").clicked() {
-                        let mut data = CmdData::default();
-                        data.duration = ui_state.headset_duration;
-
-                        match tx.try_send(BtCommands::SetMode(data)) {
-                            Ok(_) => (),
-                            Err(_) => println!("queue full!"),
-                        };
-                    }
-                });
+                for x in 0 .. 2 {
+                    ui.horizontal(|ui| {
+                        ui.add(egui::Slider::new(&mut ui_state.headset_settings[x], 0 ..= 63)
+                            .text(settings[x])
+                            .text_color(Color32::from_rgb(21, 40, 51)));
+    
+                        if ui.button("apply").clicked() {
+                            let mut data = CmdData::default();
+                            data.settings[x] = ui_state.headset_settings[x];
+    
+                            match tx.try_send(BtCommands::SetMode(data)) {
+                                Ok(_) => (),
+                                Err(_) => println!("queue full!"),
+                            };
+                        }
+                    });
+                }
             }
 
             _ => {
@@ -117,7 +107,7 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
                         BtToGui::Ready => unreachable!(),
                     };
 
-                    ui.colored_label(Color32::from_rgb(31, 60, 76), status);
+                    ui.colored_label(Color32::from_rgb(21, 40, 51), status);
                     ui.spinner();
                 });
             }

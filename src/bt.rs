@@ -15,8 +15,7 @@ pub enum BtCommands {
 pub struct CmdData {
     pub mode: u8,
     pub rgb: [u8; 3],
-    pub bpm: u8,
-    pub duration: u8,
+    pub settings: [u8; 2], //brightness + speed / bpm + duration
 }
 
 #[derive(Debug, Default)]
@@ -118,7 +117,7 @@ pub async fn bt_stuff(rx: &mut mpsc::Receiver<BtCommands>, tx: &mpsc::Sender<BtT
 
 fn command(d: CmdData) -> [u8; 11] {
     // 0xFC, 0x04, 0x01, 0x06 = header / command
-    let mut cmd = [0xFC, 0x04, 0x01, 0x06, d.mode, d.rgb[0], d.rgb[1], d.rgb[2], d.bpm, d.duration, 0x00];
+    let mut cmd = [0xFC, 0x04, 0x01, 0x06, d.mode, d.rgb[0], d.rgb[1], d.rgb[2], d.settings[0], d.settings[1], 0x00];
     cmd[10] = cmd.iter().fold(0, |checksum, x| checksum.wrapping_sub(*x));
 
     cmd
