@@ -1,5 +1,5 @@
 use tokio::sync::mpsc;
-use egui::Context;
+use egui::{Context, Color32, TextStyle, FontId};
 use crate::bt::{BtCommands, BtToGui, CmdData};
 
 #[derive(Default)]
@@ -12,15 +12,20 @@ pub struct UiState {
 }
 
 pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mut UiState) {
+    let mut central_frame = egui::containers::Frame::default();
+    central_frame.inner_margin = egui::style::Margin { left: 15.0, right: 15.0, top: 15.0, bottom: 15.0 };
+    central_frame.fill = Color32::from_rgb(0xB4, 0xE4, 0xFF);
+
     egui::CentralPanel::default()
+    .frame(central_frame)
     .show(ctx, |ui| {
         match ui_state.bt_state {
             BtToGui::Ready => {
-                ui.label(&ui_state.headset_type);
+                ui.colored_label(Color32::from_rgb(31, 60, 76), &ui_state.headset_type);
 
                 ui.add_space(18.0);
 
-                ui.label("Color:");
+                ui.colored_label(Color32::from_rgb(31, 60, 76), "Color:");
                 ui.horizontal(|ui| {
                     ui.color_edit_button_srgb(&mut ui_state.headset_color);
 
@@ -46,7 +51,7 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
 
                 let chunk_size = 2;
 
-                ui.label("Mode:");
+                ui.colored_label(Color32::from_rgb(31, 60, 76), "Mode:");
 
                 for (idx, mode_chunk) in modes.chunks(chunk_size).enumerate() {
                     ui.horizontal(|ui| {
@@ -67,10 +72,13 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
 
                 ui.add_space(18.0);
 
-                ui.label("Settings:");
+                ui.colored_label(Color32::from_rgb(31, 60, 76), "Settings:");
 
                 ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_state.headset_bpm, 0..=255).text("bpm"));
+                    ui.add(egui::Slider::new(&mut ui_state.headset_bpm, 0..=255)
+                        .text("bpm")
+                        .text_color(Color32::from_rgb(31, 60, 76)));
+
                     if ui.button("apply").clicked() {
                         let mut data = CmdData::default();
                         data.bpm = ui_state.headset_bpm;
@@ -83,7 +91,10 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
                 });
 
                 ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_state.headset_duration, 0..=255).text("duration"));
+                    ui.add(egui::Slider::new(&mut ui_state.headset_duration, 0..=255)
+                        .text("duration")
+                        .text_color(Color32::from_rgb(31, 60, 76)));
+
                     if ui.button("apply").clicked() {
                         let mut data = CmdData::default();
                         data.duration = ui_state.headset_duration;
@@ -106,10 +117,37 @@ pub fn create_ui(ctx: &mut Context, tx: &mpsc::Sender<BtCommands>, ui_state: &mu
                         BtToGui::Ready => unreachable!(),
                     };
 
-                    ui.label(status);
+                    ui.colored_label(Color32::from_rgb(31, 60, 76), status);
                     ui.spinner();
                 });
             }
         };
     });
+}
+
+pub fn set_egui_visuals(ctx: &mut Context) {
+    use egui::FontFamily::Proportional;
+
+    ctx.set_pixels_per_point(2.0);
+
+    let mut visuals = egui::Visuals::default();
+    visuals.widgets.inactive.weak_bg_fill = Color32::from_rgb(255, 206, 254); //button
+    visuals.widgets.hovered.weak_bg_fill = Color32::from_rgb(255, 153, 253);  //button, hover
+    visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(76, 0, 51);  //button text
+    visuals.widgets.hovered.fg_stroke.color = Color32::from_rgb(51, 0, 34);   //button text, hover
+    visuals.widgets.inactive.bg_fill = Color32::from_rgb(201, 244, 170);
+
+    ctx.set_visuals(visuals);
+
+    let mut style = (*ctx.style()).clone();
+
+    style.text_styles = [
+        (TextStyle::Heading, FontId::new(15.0, Proportional)),
+        (TextStyle::Body, FontId::new(15.0, Proportional)),
+        (TextStyle::Monospace, FontId::new(15.0, Proportional)),
+        (TextStyle::Button, FontId::new(15.0, Proportional)),
+        (TextStyle::Small, FontId::new(15.0, Proportional)),
+    ].into();
+
+    ctx.set_style(style);
 }

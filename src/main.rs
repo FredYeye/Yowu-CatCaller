@@ -5,16 +5,15 @@ mod bt;
 mod ui;
 
 use tokio::sync::mpsc;
-use ui::UiState;
+use ui::{UiState, set_egui_visuals};
 use winit::event_loop::{EventLoop, ControlFlow};
 use bt::{bt_stuff, BtToGui};
 
 #[tokio::main]
 async fn main() {
     let el = EventLoop::new();
-    let mut graphics_state = graphics::Graphics::setup(&el, (450, 300));
-
-    graphics_state.egui_state.ctx.set_pixels_per_point(2.0);
+    let mut graphics_state = graphics::Graphics::setup(&el, (400, 400));
+    set_egui_visuals(&mut graphics_state.egui_state.ctx);
 
     let mut ui_state = UiState::default();
 
@@ -32,7 +31,7 @@ async fn main() {
     let mut frame_time = std::time::Duration::new(0, 0);
 
     el.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::WaitUntil(std::time::Instant::now() + std::time::Duration::from_millis(2));
+        *control_flow = ControlFlow::WaitUntil(std::time::Instant::now() + std::time::Duration::from_millis(3));
 
         let current_time = std::time::Instant::now();
         frame_time += current_time - last_time;
