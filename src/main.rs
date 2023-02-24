@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 const TIME: u64 = 25000;
 
 mod graphics;
